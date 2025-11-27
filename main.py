@@ -2,10 +2,9 @@
 import os
 import random
 
-from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-
+from dotenv import load_dotenv
 
 # gives the bot permissions to read messages
 intents = discord.Intents.default()
@@ -30,7 +29,7 @@ async def hello(ctx):
 
 
 @bot.command()
-async def help(ctx):
+async def cmds(ctx):
     await ctx.send("Commands available: !hello, !roll <number>")
 
 
