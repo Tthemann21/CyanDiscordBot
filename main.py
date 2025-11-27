@@ -36,8 +36,8 @@ async def cmds(ctx):
 @bot.command()
 async def roll(ctx, Range: int, Lucky_number: int):
     await ctx.send(f"Lucky number {Lucky_number}!")
-    await ctx.send("Rolling a D20...")
-    result = random.randint(1, 20)
+    await ctx.send(f"Rolling a D{Range}...")
+    result = random.randint(1, {Range})
     if result == Lucky_number:
         await ctx.send(f"You rolled a {result}!")
     else:
