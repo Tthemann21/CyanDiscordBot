@@ -6,6 +6,10 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from commands.roll import Roll
+import db_db
+
+
+db_db.database_setup()
 
 # gives the bot permissions to read messages
 intents = discord.Intents.default()
