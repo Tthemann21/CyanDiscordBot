@@ -1,51 +1,58 @@
-#-------imports--------#
+# -------imports--------#
 import os
-import discord
-from discord.ext import commands
-from dotenv import load_dotenv
 import random
 
-#gives the bot permissions to read messages
+from dotenv import load_dotenv
+import discord
+from discord.ext import commands
+
+
+# gives the bot permissions to read messages
 intents = discord.Intents.default()
 intents.message_content = True
 
-#sets up the bot object
-bot = commands.Bot(command_prefix='!', intents = intents)
+# sets up the bot object
+bot = commands.Bot(command_prefix="!", intents=intents)
+
 
 @bot.event
 async def on_ready():
-    #f string is good, prints into terminal when bot is online
-    print(f'Booted up: {bot.user}')
+    # f string is good, prints into terminal when bot is online
+    print(f"Booted up: {bot.user}")
 
-#when I say !hello it says hello back
+
+# when I say !hello it says hello back
 @bot.command()
-#what is an async?
+# what is an async?
 async def hello(ctx):
-    #Ctx seems to be an input in chat, what is await?
-    await ctx.send('Hello!')
+    # Ctx seems to be an input in chat, what is await?
+    await ctx.send("Hello!")
+
 
 @bot.command()
 async def help(ctx):
-    await ctx.send('Commands available: !hello, !roll <number>')
+    await ctx.send("Commands available: !hello, !roll <number>")
+
 
 @bot.command()
 async def roll(ctx, Range: int, Lucky_number: int):
-    await ctx.send(f'Lucky number {Lucky_number}!')
-    await ctx.send(f'Rolling a D20...')
+    await ctx.send(f"Lucky number {Lucky_number}!")
+    await ctx.send("Rolling a D20...")
     result = random.randint(1, 20)
     if result == Lucky_number:
-        await ctx.send(f'You rolled a {result}!')
+        await ctx.send(f"You rolled a {result}!")
     else:
-        await ctx.send(f'Unlucky! You rolled a {result}.')
+        await ctx.send(f"Unlucky! You rolled a {result}.")
+
 
 @roll.error
 async def roll_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send('Please specify the number you wish to chose ex !roll 6.')
+        await ctx.send("Please specify the number you wish to chose ex !roll 6.")
     elif isinstance(error, commands.BadArgument):
-        await ctx.send('Please enter a valid integer for the number.')
+        await ctx.send("Please enter a valid integer for the number.")
 
 
 load_dotenv()
-#runs the bot with the token
-bot.run(os.getenv('BotTokenHere'))
+# runs the bot with the token
+bot.run(os.getenv("BotTokenHere"))
