@@ -6,6 +6,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from commands.roll import Roll
+from commands.admin import Admin
 import db_db
 
 
@@ -14,7 +15,7 @@ db_db.database_setup()
 # gives the bot permissions to read messages
 intents = discord.Intents.default()
 intents.message_content = True
-
+intents.members = True
 # sets up the bot object
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -23,6 +24,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     await bot.add_cog(Roll(bot))
 
+    await bot.add_cog(Admin(bot))
     # f string is good, prints into terminal when bot is online
     print(f"Booted up: {bot.user}")
 
