@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from commands.roll import Roll
 from commands.admin import Admin
+from commands.activity import Activity
 import db_db
 
 
@@ -25,6 +26,8 @@ async def on_ready():
     await bot.add_cog(Roll(bot))
 
     await bot.add_cog(Admin(bot))
+
+    await bot.add_cog(Activity(bot))
     # f string is good, prints into terminal when bot is online
     print(f"Booted up: {bot.user}")
 

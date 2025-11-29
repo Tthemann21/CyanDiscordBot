@@ -10,7 +10,7 @@ class Roll(commands.Cog):
 
     # ----Payed roll command----#
     @commands.command(
-        name="Betroll",
+        name="betroll",
         help="Roll a dice and bet on a lucky number! Usage: !betroll <bet amount> <lucky number> [range of dice, default 20]",
     )
     async def betroll(
