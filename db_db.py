@@ -42,7 +42,7 @@ def get_or_create_user(user_id: int):
                     (user_id, startingBalance, startingLevel, startingXp)
                 )
                 con.commit()
-                return startingBalance, startingLevel, startingXp
+                return startingBalance
             else:
                 #User exists return current balance
                 return result[0]
@@ -50,6 +50,33 @@ def get_or_create_user(user_id: int):
         print(f"Database error during read/create: {e}")
         return 0
 
+#----Get or create multiple users ----#
+def get_or_create_users(ids: list[int]) -> list[int]:
+    try:
+        with sqlite3.connect(DB_FILE) as con:
+            cursor = con.cursor()
+            txt = ", ".join(f"({i})" for i in ids)
+            cursor.execute(f'SELECT balance FROM player_currency WHERE user_id IN({txt})')
+            result = cursor.fetchall()
+
+            if not result:
+                #may have to be refactored into execute many depending on popularity
+                # user does not exist insert new record in table
+                cursor.executemany(
+                    'INSERT INTO player_currency (user_id, balance, level, xp) VALUES (?, ?, ?, ?)',
+                    (
+                        (user_id, startingBalance, startingLevel, startingXp)
+                        for user_id in ids
+                    )
+                )
+                con.commit()
+                return [startingBalance] * len(ids)
+            else:
+                #User exists return current balance
+                return result
+    except sqlite3.Error as e:
+        print(f"Database error during read/create: {e}")
+        return []
 
 # bal = bal + change
 #----Add to user balance----#
@@ -92,12 +119,12 @@ def set_balance(user_id: int, new_balance: int):
     except sqlite3.Error as e:
         print(f"Database error during update: {e}")
         return False
-    
+
 #----Set user level----#
 def set_level(user_id: int, new_level: int):
     if new_level < 0:
         return False
-    try:    
+    try:
         with sqlite3.connect(DB_FILE) as con:
             cursor = con.cursor()
 
@@ -113,7 +140,7 @@ def set_level(user_id: int, new_level: int):
 
 #----Add to user XP----#
 def add_xp(user_id: int, xp_change: int):
-    try:    
+    try:
         with sqlite3.connect(DB_FILE) as con:
             cursor = con.cursor()
 
@@ -122,7 +149,7 @@ def add_xp(user_id: int, xp_change: int):
 
             if current_xp + xp_change < 0:
                 return False
-            
+
             cursor.execute(
                 'UPDATE player_currency SET xp = xp + ? WHERE user_id = ?',
                 (xp_change,user_id)
@@ -137,7 +164,7 @@ def add_xp(user_id: int, xp_change: int):
 def set_xp(user_id: int, new_xp: int):
     if new_xp < 0:
         return False
-    try:    
+    try:
         with sqlite3.connect(DB_FILE) as con:
             cursor = con.cursor()
 

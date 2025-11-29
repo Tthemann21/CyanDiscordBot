@@ -1,12 +1,21 @@
 import random
+import traceback
 
+import discord
 from discord.ext import commands
-from db_db import get_or_create_user, set_balance
+
+from db_db import get_or_create_user, get_or_create_users, set_balance
 
 
 class Roll(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self._last_modified_users: list[int] = []
+
+    def _push_modified_user(self, uid: int):
+        if len(self._last_modified_users) == 10:
+            self._last_modified_users.pop(0)
+        self._last_modified_users.append(uid)
 
     # ----Payed roll command----#
     @commands.command(
@@ -46,7 +55,7 @@ class Roll(commands.Cog):
                     f"JACKPOT! You rolled a {result}! and won {Payout} coins! Your new balance is {new_balance}."
                 )
             else:
-                await ctx.send("Error updating balance.")
+                return await ctx.send("Error updating balance.")
         else:
             new_balance = current_balance - bet
             change_success = set_balance(user_id, new_balance)
@@ -55,7 +64,9 @@ class Roll(commands.Cog):
                     f"You rolled a {result}. Sorry, you lost {bet} coins. Your new balance is {new_balance}."
                 )
             else:
-                await ctx.send("Error updating balance.")
+                return await ctx.send("Error updating balance.")
+
+        self._push_modified_user(user_id)
 
     # ----betroll error handling----#
     @betroll.error
@@ -85,3 +96,62 @@ class Roll(commands.Cog):
             await ctx.send("Please specify the number you wish to chose ex !roll 6.")
         elif isinstance(error, commands.BadArgument):
             await ctx.send("Please enter a valid integer for the number.")
+
+    @commands.command(
+        help="Gives or takes away money from a user."
+    )
+    @commands.has_permissions(administrator=True)
+    async def fund(self, ctx: commands.Context[commands.Bot], user_id: int | discord.Member, amount: int):
+        if amount == 0:
+            return await ctx.reply("Please specify an amount not equal to 0.")
+
+        if isinstance(user_id, discord.Member):
+            user_id = user_id.id
+        user_id: int
+
+        # ensure the user exists in the DB
+        current_balance = get_or_create_user(user_id)
+        new_balance = current_balance + amount
+        success = set_balance(user_id, new_balance)
+
+        if not success:
+            await ctx.send("Failed to fund user; no response from DB.")
+
+        if amount > 0:
+            await ctx.reply(f"Gave {amount} currency to <@{user_id}>.")
+        else:
+            await ctx.reply(f"Yanked {amount} currency from <@{user_id}>.")
+
+        self._push_modified_user(user_id)
+
+    @fund.error
+    async def fund_err(
+        self,
+        ctx: commands.Context[commands.Bot],
+        error: commands.CommandError,
+    ):
+        traceback.print_exc()
+        await ctx.send(f"Failed to fund user: {error}")
+        raise Exception() from error
+
+    @commands.command(
+        help="Displays the bank accounts of the last 10 transactions."
+    )
+    @commands.has_permissions(administrator=True)
+    async def funds(
+        self,
+        ctx: commands.Context[commands.Bot],
+    ):
+        currencies: list[tuple[int, int]] = list(
+            zip(
+                self._last_modified_users,
+                get_or_create_users(self._last_modified_users)
+            )
+        )
+
+        if not currencies:
+            return await ctx.reply("No transactions have happened recently.", delete_after=10)
+
+        ctext = "\n".join(f"{user} {money}" for user, money in currencies)
+
+        await ctx.reply(f"```\n{ctext}\n```", delete_after=20)

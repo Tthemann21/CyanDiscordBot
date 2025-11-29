@@ -56,7 +56,7 @@ class Activity(commands.Cog):
             for uid in expired:
                 self._xp_cooldowns.pop(uid, None)
             self._last_prune = now
-            
+
         if now - last_award < self._xp_cooldown_seconds:
             # still in cooldown window; don't award XP
             await self.bot.process_commands(message)
@@ -72,4 +72,3 @@ class Activity(commands.Cog):
 
         # continue processing commands (if any)
         await self.bot.process_commands(message)
-    
