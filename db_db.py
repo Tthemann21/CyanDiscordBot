@@ -12,7 +12,7 @@ def database_setup():
 
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS player_currency (
-                user_id INTEGER PRIMARY KEY, 
+                user_id INTEGER PRIMARY KEY,
                 balance INTEGER
                         )
                 """)
@@ -32,7 +32,7 @@ def get_or_create_user(user_id: int):
 
             if result is None:
                 #may have to be refactored into execute many depending on popularity
-                # user does not exist insert new record in table 
+                # user does not exist insert new record in table
                 cursor.execute(
                     'INSERT INTO player_currency (user_id, balance) VALUES (?, ?)',
                     (user_id, startingBalance)
@@ -45,11 +45,11 @@ def get_or_create_user(user_id: int):
     except sqlite3.Error as e:
         print(f"Database error during read/create: {e}")
         return 0
-    
+
 
 # bal = bal + change
 def add_balance(user_id: int, amount_change: int):
-    try:    
+    try:
         with sqlite3.connect(DB_FILE) as con:
             cursor = con.cursor()
 
@@ -58,7 +58,7 @@ def add_balance(user_id: int, amount_change: int):
 
             if current_balance + amount_change < 0:
                 return False
-            
+
             cursor.execute(
                 'UPDATE player_currency SET balance = balance + ? WHERE user_id = ?',
                 (amount_change,user_id)
@@ -73,7 +73,7 @@ def add_balance(user_id: int, amount_change: int):
 def set_balance(user_id: int, new_balance: int):
     if new_balance < 0:
         return False
-    try:    
+    try:
         with sqlite3.connect(DB_FILE) as con:
             cursor = con.cursor()
 
