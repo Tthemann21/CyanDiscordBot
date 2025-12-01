@@ -8,3 +8,6 @@ dependencies = [
     "disnake>=2.11.0",
     "dotenv>=0.9.9",
 ]
+
+[tool.setuptools]
+packages = []
