@@ -1,6 +1,5 @@
-import discord
-from discord.ext import commands
-
+from disnake.ext import commands
+from disnake import Member
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -40,7 +39,7 @@ class Admin(commands.Cog):
         name="kick", help="Kick a user from the server. Usage: !kick <user>"
     )
     @commands.has_permissions(kick_members=True)
-    async def kick(self, ctx: commands.Context, member: discord.Member, *, reason=None):
+    async def kick(self, ctx: commands.Context, member: Member, *, reason=None):
         await member.kick(reason=reason)
 
         if reason:

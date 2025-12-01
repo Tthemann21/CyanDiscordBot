@@ -1,8 +1,8 @@
 import random
 import traceback
 
-import discord
-from discord.ext import commands
+from disnake.ext import commands
+from disnake import Member
 
 from db_db import get_or_create_user, get_or_create_users, set_balance
 
@@ -101,11 +101,11 @@ class Roll(commands.Cog):
         help="Gives or takes away money from a user."
     )
     @commands.has_permissions(administrator=True)
-    async def fund(self, ctx: commands.Context[commands.Bot], user_id: int | discord.Member, amount: int):
+    async def fund(self, ctx: commands.Context[commands.Bot], user_id: int | Member, amount: int):
         if amount == 0:
             return await ctx.reply("Please specify an amount not equal to 0.")
 
-        if isinstance(user_id, discord.Member):
+        if isinstance(user_id, Member):
             user_id = user_id.id
         user_id: int
 

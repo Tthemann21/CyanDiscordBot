@@ -1,7 +1,8 @@
 import time
-import discord
-from discord.ext import commands
 
+from disnake.ext import commands
+from disnake import Member
+from disnake import Message
 from db_db import get_or_create_user, add_xp
 
 
@@ -24,14 +25,20 @@ class Activity(commands.Cog):
         self._prune_interval_seconds: float = 300
 
     @commands.Cog.listener()
-    async def on_member_join(self, member: discord.Member):
+    async def on_member_join(self, member: Member):
         if member.bot:
             return
         user_id = member.id
         get_or_create_user(user_id)
 
+    #async def level up_check(self, user_id: int, xp: int, level: int, ctx: commands.Context):
+        # Placeholder for level check logic
+        #if xp >= threshold:
+            #level = level + 1
+            
+
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
+    async def on_message(self, message: Message):
         # ignore bot messages
         if message.author.bot:
             return

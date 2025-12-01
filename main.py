@@ -1,8 +1,8 @@
 # -------imports--------#
 import os
 
-import discord
-from discord.ext import commands
+from disnake.ext import commands
+from disnake import Intents
 from dotenv import load_dotenv
 
 from commands.roll import Roll
@@ -14,7 +14,7 @@ import db_db
 db_db.database_setup()
 
 # gives the bot permissions to read messages
-intents = discord.Intents.default()
+intents = Intents.default()
 intents.message_content = True
 intents.members = True
 # sets up the bot object
