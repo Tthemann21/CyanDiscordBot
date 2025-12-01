@@ -23,11 +23,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    await bot.add_cog(Roll(bot))
-
-    await bot.add_cog(Admin(bot))
-
-    await bot.add_cog(Activity(bot))
+    bot.add_cog(Roll(bot))
+    bot.add_cog(Admin(bot))
+    bot.add_cog(Activity(bot))
     # f string is good, prints into terminal when bot is online
     print(f"Booted up: {bot.user}")
 
