@@ -1,8 +1,9 @@
 import random
 import traceback
 
-from disnake.ext import commands
 from disnake import Member
+from disnake.ext import commands
+from disnake.ext.commands import Bot, CommandError, Context
 
 from db_db import get_or_create_user, get_or_create_users, set_balance
 
@@ -23,7 +24,11 @@ class Roll(commands.Cog):
         help="Roll a dice and bet on a lucky number! Usage: !betroll <bet amount> <lucky number> [range of dice, default 20]",
     )
     async def betroll(
-        self, ctx: commands.Context, bet: int, lucky_number: int, range: int = 20
+        self,
+        ctx: Context,
+        bet: int,
+        lucky_number: int,
+        range: int = 20,
     ):
         user_id = ctx.author.id
         # ----Input validation----#
@@ -80,7 +85,7 @@ class Roll(commands.Cog):
 
     # ----Free roll command----#
     @commands.command()
-    async def roll(self, ctx: commands.Context, lucky_number: int, range: int = 20):
+    async def roll(self, ctx: Context, lucky_number: int, range: int = 20):
         await ctx.send(f"Lucky number {lucky_number}!")
         await ctx.reply(f"Rolling a D{range}...")
         result = random.randint(1, range)
@@ -91,38 +96,40 @@ class Roll(commands.Cog):
 
     # ----roll error handling----#
     @roll.error
-    async def roll_error(self, ctx, error):
+    async def roll_error(self, ctx: Context[Bot], error: CommandError):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Please specify the number you wish to chose ex !roll 6.")
         elif isinstance(error, commands.BadArgument):
             await ctx.send("Please enter a valid integer for the number.")
 
-    @commands.command(
-        help="Gives or takes away money from a user."
-    )
+    @commands.command(help="Gives or takes away money from a user.")
     @commands.has_permissions(administrator=True)
-    async def fund(self, ctx: commands.Context[commands.Bot], user_id: int | Member, amount: int):
+    async def fund(
+        self, ctx: Context[commands.Bot], user_id: int | Member, amount: int
+    ):
         if amount == 0:
             return await ctx.reply("Please specify an amount not equal to 0.")
 
+        uid: int
         if isinstance(user_id, Member):
-            user_id = user_id.id
-        user_id: int
+            uid = user_id.id
+        else:
+            uid = user_id
 
         # ensure the user exists in the DB
-        current_balance = get_or_create_user(user_id)
+        current_balance = get_or_create_user(uid)
         new_balance = current_balance + amount
-        success = set_balance(user_id, new_balance)
+        success = set_balance(uid, new_balance)
 
         if not success:
             await ctx.send("Failed to fund user; no response from DB.")
 
         if amount > 0:
-            await ctx.reply(f"Gave {amount} currency to <@{user_id}>.")
+            await ctx.reply(f"Gave {amount} currency to <@{uid}>.")
         else:
-            await ctx.reply(f"Yanked {amount} currency from <@{user_id}>.")
+            await ctx.reply(f"Yanked {amount} currency from <@{uid}>.")
 
-        self._push_modified_user(user_id)
+        self._push_modified_user(uid)
 
     @fund.error
     async def fund_err(
@@ -134,9 +141,7 @@ class Roll(commands.Cog):
         await ctx.send(f"Failed to fund user: {error}")
         raise Exception() from error
 
-    @commands.command(
-        help="Displays the bank accounts of the last 10 transactions."
-    )
+    @commands.command(help="Displays the bank accounts of the last 10 transactions.")
     @commands.has_permissions(administrator=True)
     async def funds(
         self,
@@ -145,13 +150,20 @@ class Roll(commands.Cog):
         currencies: list[tuple[int, int]] = list(
             zip(
                 self._last_modified_users,
-                get_or_create_users(self._last_modified_users)
+                get_or_create_users(self._last_modified_users),
             )
         )
 
         if not currencies:
-            return await ctx.reply("No transactions have happened recently.", delete_after=10)
+            return await ctx.reply(
+                "No transactions have happened recently.", delete_after=10
+            )
 
         ctext = "\n".join(f"{user} {money}" for user, money in currencies)
 
         await ctx.reply(f"```\n{ctext}\n```", delete_after=20)
+
+
+
+def setup(bot: Bot):
+    bot.add_cog(Roll(bot))

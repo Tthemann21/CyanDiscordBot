@@ -1,8 +1,8 @@
 import time
 
+from disnake import Member, Message
 from disnake.ext import commands
-from disnake import Member
-from disnake import Message
+
 from db_db import get_or_create_user, add_xp
 
 
@@ -35,7 +35,7 @@ class Activity(commands.Cog):
         # Placeholder for level check logic
         #if xp >= threshold:
             #level = level + 1
-            
+
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):
@@ -79,3 +79,6 @@ class Activity(commands.Cog):
 
         # continue processing commands (if any)
         await self.bot.process_commands(message)
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Activity(bot))

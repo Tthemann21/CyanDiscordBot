@@ -1,5 +1,7 @@
-from disnake.ext import commands
 from disnake import Member
+from disnake.ext import commands
+from disnake.ext.commands import Bot
+
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -11,7 +13,7 @@ class Admin(commands.Cog):
         help="Delete a number of messages from the channel. Usage: !purge <number>",
     )
     @commands.has_permissions(manage_messages=True)
-    async def purge(self, ctx: commands.Context, number: int):
+    async def purge(self, ctx: commands.Context[Bot], number: int):
         if number <= 0:
             return await ctx.reply(
                 "Number of messages to delete must be greater than zero."
@@ -64,3 +66,6 @@ class Admin(commands.Cog):
             await ctx.reply(
                 "An error occurred while trying to execute the kick command."
             )
+
+def setup(bot: Bot):
+    bot.add_cog(Admin(bot))

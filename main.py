@@ -18,14 +18,14 @@ intents = Intents.default()
 intents.message_content = True
 intents.members = True
 # sets up the bot object
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, reload=True)
 
 
 @bot.event
 async def on_ready():
-    bot.add_cog(Roll(bot))
-    bot.add_cog(Admin(bot))
-    bot.add_cog(Activity(bot))
+    # bot.add_cog(Roll(bot))
+    # bot.add_cog(Admin(bot))
+    # bot.add_cog(Activity(bot))
     # f string is good, prints into terminal when bot is online
     print(f"Booted up: {bot.user}")
 
@@ -42,6 +42,11 @@ async def hello(ctx):
 async def cmds(ctx):
     await ctx.send("Commands available: !hello, !roll <number>")
 
+print("Loading extensions...")
+bot.load_extension("commands.roll")
+bot.load_extension("commands.admin")
+bot.load_extension("commands.activity")
+print("Loaded extensions.")
 
 load_dotenv()
 # runs the bot with the token
