@@ -75,7 +75,7 @@ class Roll(commands.Cog):
         self._push_modified_user(user_id)
 
     # ----betroll error handling----#
-    @betroll.error
+    @betroll.error  # type: ignore
     async def betroll_error(self: Cog, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Please specify the number you wish to chose ex !roll 6.")
@@ -96,8 +96,8 @@ class Roll(commands.Cog):
             await ctx.send(f"Unlucky! You rolled a {result}.")
 
     # ----roll error handling----#
-    @roll.error
-    async def roll_error(self: Cog, ctx: commands.Context, error: commands.CommandError):
+    @roll.error  # type: ignore
+    async def roll_error(self, ctx: commands.Context, error: commands.CommandError):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Please specify the number you wish to chose ex !roll 6.")
         elif isinstance(error, commands.BadArgument):
