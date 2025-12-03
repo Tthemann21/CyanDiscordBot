@@ -1,9 +1,10 @@
 import random
 import traceback
 
+from disnake import Embed
 from disnake import Member
 from disnake.ext import commands
-from disnake.ext.commands import Bot, CommandError, Context
+from disnake.ext.commands import Bot, CommandError, Context, Cog
 
 from db_db import get_or_create_user, get_or_create_users, set_balance
 
@@ -75,7 +76,7 @@ class Roll(commands.Cog):
 
     # ----betroll error handling----#
     @betroll.error
-    async def betroll_error(self, ctx, error):
+    async def betroll_error(self: Cog, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Please specify the number you wish to chose ex !roll 6.")
         elif isinstance(error, commands.BadArgument):
@@ -96,7 +97,7 @@ class Roll(commands.Cog):
 
     # ----roll error handling----#
     @roll.error
-    async def roll_error(self, ctx: Context[Bot], error: CommandError):
+    async def roll_error(self: Cog, ctx: commands.Context, error: commands.CommandError):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Please specify the number you wish to chose ex !roll 6.")
         elif isinstance(error, commands.BadArgument):
@@ -113,7 +114,7 @@ class Roll(commands.Cog):
         uid: int
         if isinstance(user_id, Member):
             uid = user_id.id
-        else:
+        elif isinstance(user_id, int):
             uid = user_id
 
         # ensure the user exists in the DB
@@ -133,7 +134,7 @@ class Roll(commands.Cog):
 
     @fund.error
     async def fund_err(
-        self,
+        self: Cog,
         ctx: commands.Context[commands.Bot],
         error: commands.CommandError,
     ):
@@ -162,6 +163,14 @@ class Roll(commands.Cog):
         ctext = "\n".join(f"{user} {money}" for user, money in currencies)
 
         await ctx.reply(f"```\n{ctext}\n```", delete_after=20)
+
+#teststuff
+embededtest = Embed(
+
+    title="Test",
+    description="This is to test embededs", 
+)
+
 
 
 
