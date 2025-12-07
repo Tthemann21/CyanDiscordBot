@@ -5,9 +5,6 @@ from disnake.ext import commands
 from disnake import Intents
 from dotenv import load_dotenv
 
-from commands.Economy import Roll
-from commands.admin import Admin
-from commands.activity import Activity
 import db_db
 
 
@@ -43,7 +40,7 @@ async def cmds(ctx):
     await ctx.send("Commands available: !hello, !roll <number>")
 
 print("Loading extensions...")
-bot.load_extension("commands.roll")
+bot.load_extension("commands.economy")
 bot.load_extension("commands.admin")
 bot.load_extension("commands.activity")
 print("Loaded extensions.")
