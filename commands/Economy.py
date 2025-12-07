@@ -135,8 +135,8 @@ class Roll(commands.Cog):
     @fund.error
     async def fund_err(
         self: Cog,
-        ctx: commands.Context[commands.Bot],
-        error: commands.CommandError,
+        ctx: Context[commands.Bot],
+        error: CommandError,
     ):
         traceback.print_exc()
         await ctx.send(f"Failed to fund user: {error}")
@@ -146,7 +146,7 @@ class Roll(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def funds(
         self,
-        ctx: commands.Context[commands.Bot],
+        ctx: Context,
     ):
         currencies: list[tuple[int, int]] = list(
             zip(
@@ -163,6 +163,23 @@ class Roll(commands.Cog):
         ctext = "\n".join(f"{user} {money}" for user, money in currencies)
 
         await ctx.reply(f"```\n{ctext}\n```", delete_after=20)
+
+    @commands.command(help = "Displays the balance of a user.")
+    async def balance(
+        self,
+        ctx: Context,
+        user_id: int | Member
+    ):
+        uid: int
+        if isinstance(user_id, Member):
+            uid = user_id.id
+        elif isinstance(user_id, int):
+            uid = user_id
+
+        balance = get_or_create_user(uid)
+
+        await ctx.reply(f"<@{uid}>'s balance is {balance} coins.")
+        
 
 #teststuff
 embededtest = Embed(
