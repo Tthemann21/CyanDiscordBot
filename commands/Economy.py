@@ -9,7 +9,7 @@ from disnake.ext.commands import Bot, CommandError, Context, Cog
 from db_db import get_or_create_user, get_or_create_users, set_balance
 
 
-class Roll(commands.Cog):
+class economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._last_modified_users: list[int] = []
@@ -192,4 +192,4 @@ embededtest = Embed(
 
 
 def setup(bot: Bot):
-    bot.add_cog(Roll(bot))
+    bot.add_cog(economy(bot))
