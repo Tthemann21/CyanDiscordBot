@@ -5,7 +5,7 @@ from disnake.ext import commands
 from disnake import Intents
 from dotenv import load_dotenv
 
-from commands.roll import Roll
+from commands.Economy import Roll
 from commands.admin import Admin
 from commands.activity import Activity
 import db_db
