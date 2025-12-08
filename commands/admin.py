@@ -1,7 +1,6 @@
 from disnake import Member, TextChannel
 from disnake.ext import commands
 from disnake.ext.commands import Bot
-from disnake.ext.commands import Cog
 
 class Admin(commands.Cog):
     def __init__(self, bot):

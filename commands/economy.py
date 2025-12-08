@@ -1,12 +1,27 @@
 import random
 import traceback
 
+import disnake
+from disnake import ui
 from disnake import Embed
 from disnake import Member
 from disnake.ext import commands
 from disnake.ext.commands import Bot, CommandError, Context, Cog
 
 
+class betrollui(ui.View):
+    def __init__(self, inter: disnake.ApplicationCommandInteraction, bet: int, luckyNumber: int, diceRange: int):
+        super().__init__(timeout=180)
+        self.initiator = inter.author
+        self.bet = bet
+        self.luckyNumber = luckyNumber
+        self.diceRange = diceRange
+        self.rolled = False
+        self.result = None
+
+        self.add_item(ui.Button(label=(f"Roll a D{self.diceRange} (Bet {self.bet})"), style=disnake.ButtonStyle.primary, custom_id="roll_main_dice"))
+        @ui.Button(label=("Cancel Bet"),style=disnake.ButtonStyle.primary, custom_id="Cancel", row=1 )
+        async def cancel_button()
 class economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -159,12 +174,8 @@ class economy(commands.Cog):
 
         await ctx.reply(f"```\n{ctext}\n```", delete_after=20)
 
-    @commands.command(help = "Displays the balance of a user.")
-    async def balance(
-        self,
-        ctx: Context,
-        user_id: int | Member
-    ):
+    @commands.command(help="Displays the balance of a user.")
+    async def balance(self, ctx: Context, user_id: int | Member):
         uid: int
         if isinstance(user_id, Member):
             uid = user_id.id
