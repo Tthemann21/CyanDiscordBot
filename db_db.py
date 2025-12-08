@@ -91,7 +91,7 @@ class PlayerDatabase:
 
             # Find which users exist
             existing_ids = {u.user_id for u in results}
-            missing_ids = user_ids - existing_ids
+            missing_ids = set(user_ids) - existing_ids
 
             # Create missing users
             if missing_ids:
@@ -102,7 +102,7 @@ class PlayerDatabase:
                     rows,
                 )
                 self.con.commit()
-                results.extend(rows)
+                results.extend(new_users)
 
             return results
         except sqlite3.Error as e:
