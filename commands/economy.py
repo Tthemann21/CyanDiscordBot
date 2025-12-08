@@ -8,7 +8,7 @@ from disnake import Member
 from disnake.ext import commands
 from disnake.ext.commands import Bot, CommandError, Context, Cog
 
-
+"""
 class betrollui(ui.View):
     def __init__(self, inter: disnake.ApplicationCommandInteraction, bet: int, luckyNumber: int, diceRange: int):
         super().__init__(timeout=180)
@@ -20,8 +20,10 @@ class betrollui(ui.View):
         self.result = None
 
         self.add_item(ui.Button(label=(f"Roll a D{self.diceRange} (Bet {self.bet})"), style=disnake.ButtonStyle.primary, custom_id="roll_main_dice"))
+        
         @ui.Button(label=("Cancel Bet"),style=disnake.ButtonStyle.primary, custom_id="Cancel", row=1 )
         async def cancel_button()
+"""            
 class economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
