@@ -6,8 +6,6 @@ from disnake import Member
 from disnake.ext import commands
 from disnake.ext.commands import Bot, CommandError, Context, Cog
 
-from db_db import get_or_create_user, get_or_create_users, set_balance
-
 
 class economy(commands.Cog):
     def __init__(self, bot):
@@ -37,10 +35,10 @@ class economy(commands.Cog):
             return await ctx.send("Bet amount must be greater than zero.")
         if lucky_number < 1 or lucky_number > range:
             return await ctx.send(f"Your lucky number must be between 1 and {range}.")
-        current_balance = get_or_create_user(user_id)
-        if bet > current_balance:
+        current_user = self.bot.db.fetch_user(user_id)
+        if bet > current_user.balance:
             return await ctx.send(
-                f"You do not have enough balance to place that bet. Your current balance is {current_balance}."
+                f"You do not have enough balance to place that bet. Your current balance is {current_user.balance}."
             )
         # ----Rolling the dice----#
         await ctx.reply(f"Rolling a D{range}...")
@@ -52,9 +50,10 @@ class economy(commands.Cog):
             # ----Calculate payout----#
             Payoutfactor = range - 1
             Payout = bet * Payoutfactor
-            new_balance = current_balance + Payout
+            new_balance = current_user.balance + Payout
             # ----Update balance----#
-            change_success = set_balance(user_id, new_balance)
+            current_user.balance = new_balance
+            change_success = self.bot.db.update_user(current_user)
 
             if change_success:
                 await ctx.send(
@@ -63,8 +62,9 @@ class economy(commands.Cog):
             else:
                 return await ctx.send("Error updating balance.")
         else:
-            new_balance = current_balance - bet
-            change_success = set_balance(user_id, new_balance)
+            new_balance = current_user.balance - bet
+            current_user.balance = new_balance
+            change_success = self.bot.db.update_user(current_user)
             if change_success:
                 await ctx.send(
                     f"You rolled a {result}. Sorry, you lost {bet} coins. Your new balance is {new_balance}."
@@ -117,10 +117,10 @@ class economy(commands.Cog):
         elif isinstance(user_id, int):
             uid = user_id
 
-        # ensure the user exists in the DB
-        current_balance = get_or_create_user(uid)
-        new_balance = current_balance + amount
-        success = set_balance(uid, new_balance)
+        user = self.bot.db.fetch_user(uid)
+        new_balance = user.balance + amount
+        user.balance = new_balance
+        success = self.bot.db.update_user(user)
 
         if not success:
             await ctx.send("Failed to fund user; no response from DB.")
@@ -148,19 +148,14 @@ class economy(commands.Cog):
         self,
         ctx: Context,
     ):
-        currencies: list[tuple[int, int]] = list(
-            zip(
-                self._last_modified_users,
-                get_or_create_users(self._last_modified_users),
-            )
-        )
+        users = self.bot.db.fetch_users(self._last_modified_users)
 
-        if not currencies:
+        if not users:
             return await ctx.reply(
                 "No transactions have happened recently.", delete_after=10
             )
 
-        ctext = "\n".join(f"{user} {money}" for user, money in currencies)
+        ctext = "\n".join(f"{user.user_id} {user.balance}" for user in users)
 
         await ctx.reply(f"```\n{ctext}\n```", delete_after=20)
 
@@ -176,9 +171,9 @@ class economy(commands.Cog):
         elif isinstance(user_id, int):
             uid = user_id
 
-        balance = get_or_create_user(uid)
+        user = self.bot.db.fetch_user(uid)
 
-        await ctx.reply(f"<@{uid}>'s balance is {balance} coins.")
+        await ctx.reply(f"<@{uid}>'s balance is {user.balance} coins.")
         
 
 #teststuff

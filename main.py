@@ -1,21 +1,25 @@
 # -------imports--------#
 import os
 
+from cyan_bot import CyanBot
 from disnake.ext import commands
 from disnake import Intents
 from dotenv import load_dotenv
 
-import db_db
+from db_db import PlayerDatabase
 
 
-db_db.database_setup()
+# Initialize the database
+db = PlayerDatabase()
 
 # gives the bot permissions to read messages
 intents = Intents.default()
 intents.message_content = True
 intents.members = True
 # sets up the bot object
-bot = commands.Bot(command_prefix="!", intents=intents, reload=True)
+bot = CyanBot(command_prefix="!", intents=intents, reload=True)
+# Attach database to bot for access in cogs
+bot.db = db
 
 
 @bot.event

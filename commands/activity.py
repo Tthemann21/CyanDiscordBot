@@ -1,9 +1,8 @@
 import time
 
+from cyan_bot import CyanBot
 from disnake import Member, Message
 from disnake.ext import commands
-
-from db_db import get_or_create_user, add_xp
 
 
 class Activity(commands.Cog):
@@ -13,8 +12,8 @@ class Activity(commands.Cog):
     - Awards XP on messages but enforces an in-memory cooldown per user.
     """
 
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot: CyanBot):
+        self.bot: CyanBot = bot
         # in-memory cooldown: user_id -> last_awarded_timestamp
         self._xp_cooldowns: dict[int, float] = {}
         # seconds between allowed XP awards per user
@@ -29,7 +28,7 @@ class Activity(commands.Cog):
         if member.bot:
             return
         user_id = member.id
-        get_or_create_user(user_id)
+        self.bot.db.fetch_user(user_id)
 
     #async def level up_check(self, user_id: int, xp: int, level: int, ctx: commands.Context):
         # Placeholder for level check logic
@@ -71,9 +70,11 @@ class Activity(commands.Cog):
 
         # Award XP and update last-award timestamp only if DB update succeeds
         xp_gained = 10
-        # ensure the user exists in the DB only when we're about to award XP
-        get_or_create_user(user_id)
-        success = add_xp(user_id, xp_gained)
+
+        user = self.bot.db.fetch_user(user_id)
+        user.xp += xp_gained
+        success = self.bot.db.update_user(user)
+
         if success:
             self._xp_cooldowns[user_id] = now
 

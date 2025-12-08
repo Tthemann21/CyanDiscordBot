@@ -1,179 +1,151 @@
 import sqlite3
-from typing import Optional
+from dataclasses import dataclass
+from typing import Self
 
 DB_FILE = "db_discordbot.db"
-startingBalance = 500
-startingLevel = 1
-startingXp = 0
 
-#----Database setup----#
-def database_setup():
-    try:
-        with sqlite3.connect(DB_FILE) as con:
-            cursor = con.cursor()
 
+@dataclass
+class PlayerUser:
+    """Dataclass representing a player in the database."""
+
+    user_id: int
+    balance: int
+    level: int
+    xp: int
+
+    @classmethod
+    def default(cls, user_id: int) -> Self:
+        """Create a user with default starting values."""
+        return cls(user_id=user_id, balance=500, level=1, xp=0)
+
+
+class PlayerDatabase:
+    """Database manager for player currency and progression data"""
+
+    def __init__(self, db_file: str = DB_FILE):
+        self.db_file = db_file
+        self.con = sqlite3.connect(self.db_file, check_same_thread=False)
+        self.setup()
+
+    def setup(self) -> None:
+        try:
+            cursor = self.con.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS player_currency (
-                user_id INTEGER PRIMARY KEY,
-                balance INTEGER,
-                xp INTEGER,
-                level INTEGER
-                        )
-                """)
-            con.commit()
+                    user_id INTEGER PRIMARY KEY,
+                    balance INTEGER,
+                    xp INTEGER,
+                    level INTEGER
+                )
+            """)
+            self.con.commit()
             print("Database setup completed.")
-    except sqlite3.Error as e:
-        print(f"ERROR: Could not set up database: {e}")
+        except sqlite3.Error as e:
+            print(f"ERROR: Could not set up database: {e}")
 
-#----Get or create user ----#
-def get_or_create_user(user_id: int):
-    try:
-        with sqlite3.connect(DB_FILE) as con:
-            cursor = con.cursor()
-
-            cursor.execute('SELECT balance FROM player_currency WHERE user_id = ?', (user_id,))
-            result: Optional[tuple] = cursor.fetchone()
+    def fetch_user(self, user_id: int) -> PlayerUser:
+        try:
+            cursor = self.con.cursor()
+            cursor.execute(
+                "SELECT user_id, balance, level, xp FROM player_currency WHERE user_id = ?",
+                (user_id,),
+            )
+            result = cursor.fetchone()
 
             if result is None:
-                #may have to be refactored into execute many depending on popularity
-                # user does not exist insert new record in table
+                # may have to be refactored into execute many depending on popularity
+                # Create new user with default values
+                new_user = PlayerUser.default(user_id)
                 cursor.execute(
-                    'INSERT INTO player_currency (user_id, balance, level, xp) VALUES (?, ?, ?, ?)',
-                    (user_id, startingBalance, startingLevel, startingXp)
+                    "INSERT INTO player_currency (user_id, balance, level, xp) VALUES (?, ?, ?, ?)",
+                    (new_user.user_id, new_user.balance, new_user.level, new_user.xp),
                 )
-                con.commit()
-                return startingBalance
+                self.con.commit()
+                return new_user
             else:
-                #User exists return current balance
-                return result[0]
-    except sqlite3.Error as e:
-        print(f"Database error during read/create: {e}")
-        return 0
+                return PlayerUser(*result)
+        except sqlite3.Error as e:
+            try:
+                self.con.rollback()
+            except Exception:
+                pass
+            print(f"Database error during fetch: {e}")
+            return PlayerUser.default(user_id)
 
-#----Get or create multiple users ----#
-def get_or_create_users(ids: list[int]) -> list[int]:
-    try:
-        with sqlite3.connect(DB_FILE) as con:
-            cursor = con.cursor()
-            txt = ", ".join(f"({i})" for i in ids)
-            cursor.execute(f'SELECT balance FROM player_currency WHERE user_id IN({txt})')
-            result = cursor.fetchall()
+    def fetch_users(self, user_ids: list[int]) -> list[PlayerUser]:
+        if not user_ids:
+            return []
 
-            if not result:
-                #may have to be refactored into execute many depending on popularity
-                # user does not exist insert new record in table
+        try:
+            cursor = self.con.cursor()
+            placeholders = ", ".join("?" * len(user_ids))
+            cursor.execute(
+                f"SELECT user_id, balance, level, xp FROM player_currency WHERE user_id IN ({placeholders})",
+                user_ids,
+            )
+            results = [
+                PlayerUser(uid, balance, level, xp)
+                for (uid, balance, level, xp) in cursor.fetchall()
+            ]
+
+            # Find which users exist
+            existing_ids = {u.user_id for u in results}
+            missing_ids = user_ids - existing_ids
+
+            # Create missing users
+            if missing_ids:
+                new_users = [PlayerUser.default(uid) for uid in missing_ids]
+                rows = [(u.user_id, u.balance, u.level, u.xp) for u in new_users]
                 cursor.executemany(
-                    'INSERT INTO player_currency (user_id, balance, level, xp) VALUES (?, ?, ?, ?)',
-                    (
-                        (user_id, startingBalance, startingLevel, startingXp)
-                        for user_id in ids
-                    )
+                    "INSERT INTO player_currency (user_id, balance, level, xp) VALUES (?, ?, ?, ?)",
+                    rows,
                 )
-                con.commit()
-                return [startingBalance] * len(ids)
-            else:
-                #User exists return current balance
-                return result
-    except sqlite3.Error as e:
-        print(f"Database error during read/create: {e}")
-        return []
+                self.con.commit()
+                results.extend(rows)
 
-# bal = bal + change
-#----Add to user balance----#
-def add_balance(user_id: int, amount_change: int):
-    try:
-        with sqlite3.connect(DB_FILE) as con:
-            cursor = con.cursor()
+            return results
+        except sqlite3.Error as e:
+            try:
+                self.con.rollback()
+            except Exception:
+                pass
+            print(f"Database error during fetch_users: {e}")
+            return []
 
-            cursor.execute('SELECT balance FROM player_currency WHERE user_id = ?', (user_id,))
-            current_balance = cursor.fetchone()[0]
-
-            if current_balance + amount_change < 0:
-                return False
-
+    def update_user(self, user: PlayerUser) -> bool:
+        try:
+            cursor = self.con.cursor()
             cursor.execute(
-                'UPDATE player_currency SET balance = balance + ? WHERE user_id = ?',
-                (amount_change,user_id)
+                "UPDATE player_currency SET balance = ?, level = ?, xp = ? WHERE user_id = ?",
+                (user.balance, user.level, user.xp, user.user_id),
             )
-            con.commit()
+            self.con.commit()
             return True
-    except sqlite3.Error as e:
-        print(f"Database error during update: {e}")
-        return False
+        except sqlite3.Error as e:
+            try:
+                self.con.rollback()
+            except Exception:
+                pass
+            print(f"Database error during update: {e}")
+            return False
 
-# bal = new_balance
-#----Set user balance----#
-def set_balance(user_id: int, new_balance: int):
-    if new_balance < 0:
-        return False
-    try:
-        with sqlite3.connect(DB_FILE) as con:
-            cursor = con.cursor()
+    def close(self) -> None:
+        """Close the underlying sqlite3 connection
 
-            cursor.execute(
-                'UPDATE player_currency SET balance = ? WHERE user_id = ?',
-                (new_balance,user_id)
-            )
-            con.commit()
-            return True
-    except sqlite3.Error as e:
-        print(f"Database error during update: {e}")
-        return False
-
-#----Set user level----#
-def set_level(user_id: int, new_level: int):
-    if new_level < 0:
-        return False
-    try:
-        with sqlite3.connect(DB_FILE) as con:
-            cursor = con.cursor()
-
-            cursor.execute(
-                'UPDATE player_currency SET level = ? WHERE user_id = ?',
-                (new_level,user_id)
-            )
-            con.commit()
-            return True
-    except sqlite3.Error as e:
-        print(f"Database error during update: {e}")
-        return False
-
-#----Add to user XP----#
-def add_xp(user_id: int, xp_change: int):
-    try:
-        with sqlite3.connect(DB_FILE) as con:
-            cursor = con.cursor()
-
-            cursor.execute('SELECT xp FROM player_currency WHERE user_id = ?', (user_id,))
-            current_xp = cursor.fetchone()[0]
-
-            if current_xp + xp_change < 0:
-                return False
-
-            cursor.execute(
-                'UPDATE player_currency SET xp = xp + ? WHERE user_id = ?',
-                (xp_change,user_id)
-            )
-            con.commit()
-            return True
-    except sqlite3.Error as e:
-        print(f"Database error during update: {e}")
-        return False
-
-#----Set user XP----#
-def set_xp(user_id: int, new_xp: int):
-    if new_xp < 0:
-        return False
-    try:
-        with sqlite3.connect(DB_FILE) as con:
-            cursor = con.cursor()
-
-            cursor.execute(
-                'UPDATE player_currency SET xp = ? WHERE user_id = ?',
-                (new_xp,user_id)
-            )
-            con.commit()
-            return True
-    except sqlite3.Error as e:
-        print(f"Database error during update: {e}")
-        return False
+        Safe to call multiple times
+        """
+        try:
+            try:
+                self.con.commit()
+            except Exception:
+                try:
+                    self.con.rollback()
+                except Exception:
+                    pass
+            try:
+                self.con.close()
+            except Exception:
+                pass
+        except Exception:
+            pass
