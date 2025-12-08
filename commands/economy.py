@@ -177,12 +177,14 @@ class economy(commands.Cog):
         await ctx.reply(f"```\n{ctext}\n```", delete_after=20)
 
     @commands.command(help="Displays the balance of a user.")
-    async def balance(self, ctx: Context, user_id: int | Member):
+    async def balance(self, ctx: Context, user_id: int | Member | None):
         uid: int
         if isinstance(user_id, Member):
             uid = user_id.id
         elif isinstance(user_id, int):
             uid = user_id
+        elif user_id is None:
+            uid = ctx.author.id
 
         user = self.bot.db.fetch_user(uid)
 
