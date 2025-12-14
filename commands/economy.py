@@ -2,28 +2,72 @@ import random
 import traceback
 
 import disnake
-from disnake import ui
-from disnake import Embed
-from disnake import Member
+from disnake import ApplicationCommandInteraction, ui, Embed, Member, MessageInteraction, Colour
 from disnake.ext import commands
 from disnake.ext.commands import Bot, CommandError, Context, Cog
 
-"""
+
 class betrollui(ui.View):
-    def __init__(self, inter: disnake.ApplicationCommandInteraction, bet: int, luckyNumber: int, diceRange: int):
+    def __init__(self, inter: ApplicationCommandInteraction, max_balance: int, bet: int, lucky_number: int, dice_range: int):
         super().__init__(timeout=180)
         self.initiator = inter.author
+        self.max_balance = max_balance
         self.bet = bet
-        self.luckyNumber = luckyNumber
-        self.diceRange = diceRange
+        self.lucky_number = lucky_number
+        self.dice_range = dice_range
         self.rolled = False
         self.result = None
 
-        self.add_item(ui.Button(label=(f"Roll a D{self.diceRange} (Bet {self.bet})"), style=disnake.ButtonStyle.primary, custom_id="roll_main_dice"))
-        
-        @ui.Button(label=("Cancel Bet"),style=disnake.ButtonStyle.primary, custom_id="Cancel", row=1 )
-        async def cancel_button()
-"""            
+
+    def game_screen(self) -> disnake.Embed:
+        embed = disnake.Embed(
+            title="Lucky rolls!!!",
+            type="rich",
+            colour=Colour.blue()
+
+        )
+        embed.add_field(
+            name=("Current Bet"),
+            value=(f"{self.bet} coins"),
+            inline=True
+        )
+        embed.add_field(
+            name=("Max Bet Amount"),
+            value=(f"Max amount allowed to bet {self.max_balance}"),
+            inline=True
+        )
+        embed.add_field(
+            name=("Game Details"),
+            value=(f"Rolling a D{self.dice_range}, \nHoping for a {self.lucky_number}"),
+            inline=False
+        )
+        embed.set_footer(
+            text=(f"Game started by {self.initiator.display_name}")
+        )
+        return embed
+
+
+    async def interaction_check(self, interaction: disnake.MessageInteraction):
+        if interaction.user != self.initiator:
+            await interaction.response.send_message("This is not your game! Start your own with '/betroll'.", ephemeral = True)
+            return False
+        return True
+    
+    #Green bet button
+    @ui.button(label="Roll the die!", style=disnake.ButtonStyle.primary, custom_id="roll_main_dice", row=0)
+    async def roll_button(self, button: ui.Button, interaction: MessageInteraction): ...
+
+    #Red cancel bet button
+    @ui.button(label=("Cancel Bet"),style=disnake.ButtonStyle.danger, custom_id="Cancel", row=1 )
+    async def cancel_button(self, button: ui.Button, interaction: MessageInteraction):
+        for item in self.children:
+            if isinstance(item, ui.Button):
+                item.disabled = True
+        await interaction.response.edit_message(content="Bet cancelled.", view=self)
+        self.stop()
+
+    
+            
 class economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
