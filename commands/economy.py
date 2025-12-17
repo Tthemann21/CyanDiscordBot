@@ -8,8 +8,9 @@ from disnake.ext.commands import Bot, CommandError, Context, Cog
 
 
 class betrollui(ui.View):
-    def __init__(self, inter: ApplicationCommandInteraction, max_balance: int, bet: int, lucky_number: int, dice_range: int):
+    def __init__(self, bot, inter: ApplicationCommandInteraction, max_balance: int, bet: int, lucky_number: int, dice_range: int):
         super().__init__(timeout=180)
+        self.bot = bot
         self.initiator = inter.author
         self.max_balance = max_balance
         self.bet = bet
@@ -38,7 +39,7 @@ class betrollui(ui.View):
         )
         embed.add_field(
             name=("Game Details"),
-            value=(f"Rolling a D{self.dice_range}, \nHoping for a {self.lucky_number}"),
+            value=(f"Rolling a D{self.dice_range}\nHoping for a {self.lucky_number}"),
             inline=False
         )
         embed.set_footer(
@@ -56,7 +57,7 @@ class betrollui(ui.View):
     #Green bet button
     @ui.button(label="Roll the die!", style=disnake.ButtonStyle.primary, custom_id="roll_main_dice", row=0)
     async def roll_button(self, button: ui.Button, interaction: MessageInteraction): ...
-
+    
     #Red cancel bet button
     @ui.button(label=("Cancel Bet"),style=disnake.ButtonStyle.danger, custom_id="Cancel", row=1 )
     async def cancel_button(self, button: ui.Button, interaction: MessageInteraction):
