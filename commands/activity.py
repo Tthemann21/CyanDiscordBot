@@ -81,5 +81,5 @@ class Activity(commands.Cog):
         # continue processing commands (if any)
         await self.bot.process_commands(message)
 
-def setup(bot: commands.Bot):
+def setup(bot: CyanBot):
     bot.add_cog(Activity(bot))

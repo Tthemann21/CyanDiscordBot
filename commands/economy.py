@@ -2,13 +2,28 @@ import random
 import traceback
 
 import disnake
-from disnake import ApplicationCommandInteraction, ui, Embed, Member, MessageInteraction, Colour
+from disnake import (
+    ApplicationCommandInteraction,
+    ui,
+    Embed,
+    Member,
+    MessageInteraction,
+    Colour,
+)
 from disnake.ext import commands
 from disnake.ext.commands import Bot, CommandError, Context, Cog
 
 
 class betrollui(ui.View):
-    def __init__(self, bot, inter: ApplicationCommandInteraction, max_balance: int, bet: int, lucky_number: int, dice_range: int):
+    def __init__(
+        self,
+        bot,
+        inter: ApplicationCommandInteraction,
+        max_balance: int,
+        bet: int,
+        lucky_number: int,
+        dice_range: int,
+    ):
         super().__init__(timeout=180)
         self.bot = bot
         self.initiator = inter.author
@@ -19,47 +34,79 @@ class betrollui(ui.View):
         self.rolled = False
         self.result = None
 
-
     def game_screen(self) -> disnake.Embed:
-        embed = disnake.Embed(
-            title="Lucky rolls!!!",
-            type="rich",
-            colour=Colour.blue()
-
-        )
-        embed.add_field(
-            name=("Current Bet"),
-            value=(f"{self.bet} coins"),
-            inline=True
-        )
+        embed = disnake.Embed(title="Lucky rolls!!!", type="rich", colour=Colour.blue())
+        embed.add_field(name=("Current Bet"), value=(f"{self.bet} coins"), inline=True)
         embed.add_field(
             name=("Max Bet Amount"),
             value=(f"Max amount allowed to bet {self.max_balance}"),
-            inline=True
+            inline=True,
         )
         embed.add_field(
             name=("Game Details"),
             value=(f"Rolling a D{self.dice_range}\nHoping for a {self.lucky_number}"),
-            inline=False
+            inline=False,
         )
-        embed.set_footer(
-            text=(f"Game started by {self.initiator.display_name}")
-        )
+        embed.set_footer(text=(f"Game started by {self.initiator.display_name}"))
         return embed
-
 
     async def interaction_check(self, interaction: disnake.MessageInteraction):
         if interaction.user != self.initiator:
-            await interaction.response.send_message("This is not your game! Start your own with '/betroll'.", ephemeral = True)
+            await interaction.response.send_message(
+                "This is not your game! Start your own with '/betroll'.", ephemeral=True
+            )
             return False
         return True
-    
-    #Green bet button
-    @ui.button(label="Roll the die!", style=disnake.ButtonStyle.primary, custom_id="roll_main_dice", row=0)
-    async def roll_button(self, button: ui.Button, interaction: MessageInteraction): ...
-    
-    #Red cancel bet button
-    @ui.button(label=("Cancel Bet"),style=disnake.ButtonStyle.danger, custom_id="Cancel", row=1 )
+
+    # Green bet button
+    @ui.button(
+        label="Roll the die!",
+        style=disnake.ButtonStyle.primary,
+        custom_id="roll_main_dice",
+        row=0,
+    )
+    async def roll_button(self, button: ui.Button, interaction: MessageInteraction):
+        if interaction.user != self.initiator:
+            return await interaction.response.send_message(
+                "This is not your game! Start your own with '/betroll'.", ephemeral=True
+            )
+        result = random.randint(1, self.dice_range)
+        user_id = interaction.user.id
+        current_user = self.bot.db.fetch_user(user_id)
+        # ----Determining win/loss and updating balance----#
+        if result == self.lucky_number:
+            # ----Calculate payout----#
+            Payoutfactor = self.dice_range - 1
+            Payout = self.bet * Payoutfactor
+            new_balance = self.bot.db.fetch_user(user_id) + Payout
+            # ----Update balance----#
+            current_user.balance = new_balance
+            change_success = self.bot.db.update_user(current_user)
+
+            if change_success:
+                await interaction.response.send_message(
+                    f"JACKPOT! You rolled a {result}! and won {Payout} coins! Your new balance is {new_balance}.", ephemeral=True
+                )
+            else:
+                return await interaction.response.send_message("Error updating balance.", ephemeral=True)
+        else:
+            new_balance = current_user.balance - self.bet
+            current_user.balance = new_balance
+            change_success = self.bot.db.update_user(current_user)
+            if change_success:
+                await interaction.response.send_message(
+                    f"You rolled a {result}. Sorry, you lost {self.bet} coins. Your new balance is {new_balance}.", ephemeral=True
+                )
+            else:
+                return await interaction.response.send_message("Error updating balance.", ephemeral=True)
+
+    # Red cancel bet button
+    @ui.button(
+        label=("Cancel Bet"),
+        style=disnake.ButtonStyle.danger,
+        custom_id="Cancel",
+        row=1,
+    )
     async def cancel_button(self, button: ui.Button, interaction: MessageInteraction):
         for item in self.children:
             if isinstance(item, ui.Button):
@@ -67,8 +114,7 @@ class betrollui(ui.View):
         await interaction.response.edit_message(content="Bet cancelled.", view=self)
         self.stop()
 
-    
-            
+
 class economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -78,6 +124,42 @@ class economy(commands.Cog):
         if len(self._last_modified_users) == 10:
             self._last_modified_users.pop(0)
         self._last_modified_users.append(uid)
+
+    # Test of ui function for development I will remove -Morgan
+    @commands.slash_command(name="rollui")
+    async def rollui(
+        self,
+        inter: ApplicationCommandInteraction,
+        bet: int,
+        lucky_number: int,
+        range: int = 20,
+    ):
+        user_id = inter.id
+        if bet <= 0:
+            return await inter.send(
+                "Bet amount must be greater than zero.", ephemeral=True
+            )
+        if lucky_number < 1 or lucky_number > range:
+            return await inter.send(
+                f"Your lucky number must be between 1 and {range}.", ephemeral=True
+            )
+        current_user = self.bot.db.fetch_user(user_id)
+        if bet > current_user.balance:
+            return await inter.send(
+                f"You do not have enough balance to place that bet. Your current balance is {current_user.balance}.",
+                ephemeral=True,
+            )
+        view = betrollui(
+            self.bot, inter, current_user.balance, bet, lucky_number, range
+        )
+        await inter.response.send_message(embed=view.game_screen(), view=view)
+        await view.wait()
+
+        if not view.rolled:
+            return await inter.followup.send(
+                "Bet timed out or was cancled.", ephemeral=True
+            )
+        self._push_modified_user(user_id)
 
     # ----Payed roll command----#
     @commands.command(
@@ -234,16 +316,13 @@ class economy(commands.Cog):
         user = self.bot.db.fetch_user(uid)
 
         await ctx.reply(f"<@{uid}>'s balance is {user.balance} coins.")
-        
 
-#teststuff
+
+# teststuff
 embededtest = Embed(
-
     title="Test",
-    description="This is to test embededs", 
+    description="This is to test embededs",
 )
-
-
 
 
 def setup(bot: Bot):
