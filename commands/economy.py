@@ -126,7 +126,11 @@ class economy(commands.Cog):
         self._last_modified_users.append(uid)
 
     # Test of ui function for development I will remove -Morgan
-    @commands.slash_command(name="rollui")
+    @commands.slash_command(
+            name="rollui",
+            description="Roll a dice and bet on a lucky number! Usage: /rollui <bet amount> <lucky number> [range of dice, default 20]",
+            help="Roll a dice and bet on a lucky number! Usage: /rollui <bet amount> <lucky number> [range of dice, default 20]",
+            )
     async def rollui(
         self,
         inter: ApplicationCommandInteraction,
