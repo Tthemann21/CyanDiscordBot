@@ -13,11 +13,13 @@ class PlayerUser:
     balance: int
     level: int
     xp: int
+    last_daily: int
+    streak: int
 
     @classmethod
     def default(cls, user_id: int) -> Self:
         """Create a user with default starting values."""
-        return cls(user_id=user_id, balance=500, level=1, xp=0)
+        return cls(user_id=user_id, balance=500, level=1, xp=0, last_daily=0, streak=0)
 
 
 class PlayerDatabase:
@@ -36,7 +38,9 @@ class PlayerDatabase:
                     user_id INTEGER PRIMARY KEY,
                     balance INTEGER,
                     xp INTEGER,
-                    level INTEGER
+                    level INTEGER,
+                    last_daily INTEGER,
+                    streak INTEGER
                 )
             """)
             self.con.commit()
@@ -48,7 +52,7 @@ class PlayerDatabase:
         try:
             cursor = self.con.cursor()
             cursor.execute(
-                "SELECT user_id, balance, level, xp FROM player_currency WHERE user_id = ?",
+                "SELECT user_id, balance, level, xp, last_daily, streak FROM player_currency WHERE user_id = ?",
                 (user_id,),
             )
             result = cursor.fetchone()
@@ -58,8 +62,8 @@ class PlayerDatabase:
                 # Create new user with default values
                 new_user = PlayerUser.default(user_id)
                 cursor.execute(
-                    "INSERT INTO player_currency (user_id, balance, level, xp) VALUES (?, ?, ?, ?)",
-                    (new_user.user_id, new_user.balance, new_user.level, new_user.xp),
+                    "INSERT INTO player_currency (user_id, balance, level, xp, last_daily, streak) VALUES (?, ?, ?, ?, ?, ?)",
+                    (new_user.user_id, new_user.balance, new_user.level, new_user.xp, new_user.last_daily, new_user.streak),
                 )
                 self.con.commit()
                 return new_user
@@ -81,12 +85,12 @@ class PlayerDatabase:
             cursor = self.con.cursor()
             placeholders = ", ".join("?" * len(user_ids))
             cursor.execute(
-                f"SELECT user_id, balance, level, xp FROM player_currency WHERE user_id IN ({placeholders})",
+                f"SELECT user_id, balance, level, xp, last_daily, streak FROM player_currency WHERE user_id IN ({placeholders})",
                 user_ids,
             )
             results = [
-                PlayerUser(uid, balance, level, xp)
-                for (uid, balance, level, xp) in cursor.fetchall()
+                PlayerUser(uid, balance, level, xp, last_daily, streak)
+                for (uid, balance, level, xp, last_daily, streak) in cursor.fetchall()
             ]
 
             # Find which users exist
@@ -96,9 +100,9 @@ class PlayerDatabase:
             # Create missing users
             if missing_ids:
                 new_users = [PlayerUser.default(uid) for uid in missing_ids]
-                rows = [(u.user_id, u.balance, u.level, u.xp) for u in new_users]
+                rows = [(u.user_id, u.balance, u.level, u.xp, u.last_daily, u.streak) for u in new_users]
                 cursor.executemany(
-                    "INSERT INTO player_currency (user_id, balance, level, xp) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO player_currency (user_id, balance, level, xp, last_daily, streak) VALUES (?, ?, ?, ?, ?, ?)",
                     rows,
                 )
                 self.con.commit()
@@ -117,8 +121,8 @@ class PlayerDatabase:
         try:
             cursor = self.con.cursor()
             cursor.execute(
-                "UPDATE player_currency SET balance = ?, level = ?, xp = ? WHERE user_id = ?",
-                (user.balance, user.level, user.xp, user.user_id),
+                "UPDATE player_currency SET balance = ?, level = ?, xp = ?, last_daily = ?, streak = ? WHERE user_id = ?",
+                (user.balance, user.level, user.xp, user.last_daily, user.streak, user.user_id),
             )
             self.con.commit()
             return True

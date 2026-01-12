@@ -166,7 +166,7 @@ class economy(commands.Cog):
         self._push_modified_user(user_id)
 
     # ----Payed roll command----#
-    @commands.command(
+    """@commands.command(
         name="betroll",
         help="Roll a dice and bet on a lucky number! Usage: !betroll <bet amount> <lucky number> [range of dice, default 20]",
     )
@@ -230,7 +230,7 @@ class economy(commands.Cog):
         elif isinstance(error, commands.BadArgument):
             await ctx.send("Please enter a valid integer for the number.")
         else:
-            await ctx.send("An error occurred while processing the command.")
+            await ctx.send("An error occurred while processing the command.")"""
 
     # ----Free roll command----#
     @commands.command()
